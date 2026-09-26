@@ -1,17 +1,17 @@
 # CodeAtlas 学习进度
 
-更新：2026-09-23
+更新：2026-09-26
 
 ## 当前检查点
 
-基础冲刺第 2 周“FastAPI 与数据库最小基础”已完成：`POST /repositories` 创建、`GET /repositories` 查询列表、`DELETE /repositories/{repository_id}` 删除。已通过 `/docs` 手动走通创建 → 查询 → 删除；最近一次完整测试为 `12 passed`、2 条依赖弃用警告。
+基础冲刺第 3 周“React + TypeScript 最小基础”的最小闭环已完成：前端能自动读取仓库列表，输入名称与地址后通过 API 保存，再刷新列表；也能确认并删除指定仓库。用户已在浏览器验证新增、删除及后端停止时的保存失败提示。前端 `npm run build` 通过；后端现有测试为 `12 passed`、2 条依赖弃用警告。
 
-已学知识的总览见 [第 2 周复盘](fastapi-sqlite-review.md)；第 1 周 Python 笔记见 [Python 基础练习复习](python-basics-practice.md)。
+已学知识的总览见 [第 2 周复盘](fastapi-sqlite-review.md)；第 1 周 Python 笔记见 [Python 基础练习复习](python-basics-practice.md)。第 3 周已练习 TypeScript 对象类型、React 组件与 Props、状态与事件、条件/列表渲染，以及 `fetch` 调用 API。
 
 ## 下一小步
 
-进入基础冲刺第 3 周：先理解 TypeScript 的基础类型、对象和数组，再学习 React 组件与列表渲染，做静态仓库卡片列表；之后才接已有 API。每次只推进一个小目标。
+复盘第 3 周的一次完整数据流，再本地提交前端代码与学习记录；随后进入正式项目阶段。每次只推进一个小目标。
 
 ## 暂不展开
 
-查询参数已在路线图中列出，但现有接口尚未用到；等列表需要筛选或分页时再练习。正式应用的自动建表、依赖清单和 Git 忽略规则也未整理，做可复现运行或提交前再处理。
+当前前端通过 Vite 开发代理访问 API，生产环境的转发配置尚未处理。`npm run lint` 仍有一条 Effect 中同步设置状态的警告；不影响构建，但后续整理自动加载逻辑时应处理。查询参数、正式应用的自动建表与依赖清单按实际需要再展开。
