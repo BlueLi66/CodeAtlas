@@ -32,8 +32,24 @@ function App() {
   const [loadError, setLoadError] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [createError, setCreateError] = useState('')
+  const [healthStatus, setHealthStatus] = useState("检查中")
 
-
+  async function checkHealth() {
+    try {
+      const response = await fetch('/health')
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`)
+      }
+      const data: { status: string } = await response.json()
+      if (data.status === 'ok') {
+        setHealthStatus("在线")
+      } else {
+        setHealthStatus('异常')
+      }
+    } catch {
+      setHealthStatus("离线")
+    }
+  }
   async function loadRepositories() {
     setIsLoading(true)
     setLoadError('')
@@ -53,6 +69,7 @@ function App() {
   }
 
   useEffect(() => {
+    checkHealth()
     loadRepositories()
   }, [])
 
@@ -96,6 +113,7 @@ function App() {
   return (
     <main id="center">
       <h1>CodeAtlas</h1>
+      <p>后端状态：{healthStatus}</p>
       <button onClick={loadRepositories} disabled={isLoading}>
         从后端加载
       </button>
@@ -133,6 +151,31 @@ function App() {
         保存到后端
       </button>
       {createError !== '' && <p>{createError}</p>}
+    <section>
+      <h2>目录树 （静态示例）</h2>
+      <pre>{`CodeAtlas/
+├── backend/
+│   └── main.py
+├── frontend/
+│   └── src/
+└── README.md`}</pre>
+      <p>示例结构，尚未读取仓库文件。</p>
+    </section>
+    <section>
+      <h2>代码阅读（静态示例）</h2>
+      <p>backend/main.py</p>
+      <pre>{`@app.get("/health")
+def health():
+    return {"status": "ok"}`}</pre>
+      <p>示例片段，尚未读取真实文件。</p>
+    </section>
+    <section>
+      <h2>代码问答（静态示例）</h2>
+      <p><strong>问题：</strong>健康检查接口返回什么？</p>
+      <p><strong>回答：</strong>返回 status 为 ok 的 JSON。</p>
+      <p><strong>来源：</strong>backend/main.py</p>
+      <p>示例对话，尚未连接 AI。</p>
+    </section>
     </main>
   )
 }

@@ -1,16 +1,27 @@
 # CodeAtlas 学习进度
 
-更新：2026-09-26
+更新：2026-09-27
 
 ## 当前检查点
 
 基础冲刺第 3 周“React + TypeScript 最小基础”的最小闭环已完成：前端能自动读取仓库列表，输入名称与地址后通过 API 保存，再刷新列表；也能确认并删除指定仓库。用户已在浏览器验证新增、删除及后端停止时的保存失败提示。前端 `npm run build` 通过；后端现有测试为 `12 passed`、2 条依赖弃用警告。
 
-已学知识的总览见 [第 2 周复盘](fastapi-sqlite-review.md)；第 1 周 Python 笔记见 [Python 基础练习复习](python-basics-practice.md)；第 3 周笔记见 [React + TypeScript 复盘](react-typescript-review.md)。第 3 周已练习 TypeScript 对象类型、React 组件与 Props、状态与事件、条件/列表渲染，以及 `fetch` 调用 API。前端代码已本地提交，尚未推送 GitHub。
+正式项目阶段 P0 的本地最小交付已完成：项目根目录的 README 初稿与任务看板已写，仓库列表、静态目录树、代码阅读和问答示例四个区域已出现在前端页面；前端可显示后端健康状态，用户已验证后端运行时为“在线”、停止并刷新后为“离线”。
+
+已学知识的总览见 [第 2 周复盘](fastapi-sqlite-review.md)；第 1 周 Python 笔记见 [Python 基础练习复习](python-basics-practice.md)；第 3 周笔记见 [React + TypeScript 复盘](react-typescript-review.md)。第 3 周已练习 TypeScript 对象类型、React 组件与 Props、状态与事件、条件/列表渲染，以及 `fetch` 调用 API。
 
 ## 下一小步
 
-第 3 周笔记已补充，并复盘了 `response.ok`、`response.json()` 与 `setRepositories(data)` 的分工。下一步进入正式项目阶段 P0，先写项目根目录的 README 初稿。每次只推进一个小目标。
+路线图已按“功能与理解验收”调整。P1 的第一小步是补后端依赖、启动和建表说明，验证项目可以从新环境运行，再开始 ZIP 导入。每次只推进一个可解释、可验证的小功能。
+
+## P0 最小任务看板
+
+- [x] 项目根目录 README 初稿。
+- [x] 仓库列表区域（沿用第 3 周原型）。
+- [x] 静态目录树占位区域。
+- [x] 静态代码阅读占位区域。
+- [x] 静态对话占位区域。
+- [x] 前端显示后端健康检查状态。
 
 ## 暂不展开
 
