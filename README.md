@@ -26,11 +26,11 @@ Windows PowerShell 可用 `py -m venv .venv` 创建虚拟环境，再用 `.\.ven
 
 全新数据库可直接按上述流程初始化；已经有 Alembic 版本记录的数据库应先备份，再执行升级。如果数据库由旧版 `create_all()` 创建、尚无迁移版本记录，需要先核对实际结构并建立匹配的迁移起点，不要直接运行 `stamp`、重复建表或删除数据库。
 
-打开 http://127.0.0.1:8000/health，应看到 `{"status":"ok"}`。
+打开 [健康检查接口](http://127.0.0.1:8000/health)，应看到 `{"status":"ok"}`。
 
 ## ZIP 导入验证
 
-打开 http://127.0.0.1:8000/docs，展开 `POST /repositories/import` 并点击 `Try it out`。填写 `name`，在 `archive` 中选择包含 UTF-8 `.py` 或 `.md` 文件的小 ZIP。
+打开 [API 文档](http://127.0.0.1:8000/docs)，展开 `POST /repositories/import` 并点击 `Try it out`。填写 `name`，在 `archive` 中选择包含 UTF-8 `.py` 或 `.md` 文件的小 ZIP。
 
 成功时返回 201，响应包含仓库 ID、名称、`source_url: null` 和 `file_count`。可通过 `GET /repositories` 确认仓库出现；本地 ZIP 没有来源网址，前端会显示“未提供来源地址”。原有手动创建仓库接口仍要求填写来源网址。
 
@@ -57,4 +57,4 @@ npm ci
 npm run dev
 ```
 
-打开 http://localhost:5173/，应看到仓库页面和“后端状态：在线”。
+打开 [前端页面](http://localhost:5173/)，应看到仓库页面和“后端状态：在线”。
