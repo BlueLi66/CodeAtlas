@@ -6,3 +6,5 @@ __pycache__/
 codeatlas.db
 docs-stats.json
 practiceeeee.py
+codeatlas-before-alembic.db
+/docs/
