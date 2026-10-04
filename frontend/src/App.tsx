@@ -4,7 +4,7 @@ import './App.css'
 type Repository = {
   id: number
   name: string
-  source_url: string
+  source_url: string | null
 }
 
 function RepositoryCard(props: {
@@ -14,9 +14,13 @@ function RepositoryCard(props: {
   return (
     <li>
       <div>{props.repository.name} (ID: {props.repository.id})</div>
-      <a href={props.repository.source_url}>
+      {props.repository.source_url !== null ?
+      (<a href={props.repository.source_url}>
         {props.repository.source_url}
       </a>
+      ) : (
+        <span>未提供来源地址</span>
+      )}
       <button type="button" onClick={() => props.onDelete(props.repository.id)}>
         删除
       </button>
