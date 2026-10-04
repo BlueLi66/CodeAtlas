@@ -1,32 +1,29 @@
-# React + TypeScript + Vite
+# CodeAtlas 前端
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+使用 React、TypeScript 和 Vite，已接入后端仓库列表、新增、删除和健康检查接口。
 
-Currently, two official plugins are available:
+ZIP 上传目前通过后端 API 文档操作；前端尚无上传按钮，目录树、代码阅读和问答区域仍是静态示例。
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 本地开发
 
-## React Compiler
+先按 [项目 README](../README.md) 启动后端。在项目根目录另开终端运行：
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+npm --prefix frontend ci
+npm --prefix frontend run dev
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+打开 Vite 终端输出的页面地址，检查仓库列表和后端状态。
+
+开发服务器将 `/health` 和 `/repositories` 请求代理到 `http://127.0.0.1:8000`。这只是开发环境代理，生产环境转发尚未配置。
+
+## 构建与代码检查
+
+同样在项目根目录执行：
+
+```bash
+npm --prefix frontend run build
+npm --prefix frontend run lint
+```
+
+构建结果输出到 `frontend/dist/`。构建成功不等于 API 连通；接口交互仍需在后端运行时通过页面验证。

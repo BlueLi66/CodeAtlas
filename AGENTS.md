@@ -3,7 +3,7 @@
 ## Learning mode
 
 - This is a learning-first AI full-stack project.
-- Before proposing changes, inspect the relevant current files and learning checkpoint.
+- Before proposing changes, inspect the relevant current files and learning checkpoint when available.
 - Advance one small goal at a time: a runnable behavior with clear acceptance criteria, not a few lines of code or an unfinished function. Split large goals into independently verifiable behaviors.
 - Explain the concept and data flow before implementation. Teach one main learning point in depth per goal; explain supporting concepts enough to use them.
 - Provide coherent guidance covering the files and all changes needed to complete the agreed goal. Do not withhold necessary steps until the user repeatedly says "continue".
@@ -16,8 +16,8 @@
 
 ## Project direction
 
-- `docs/` contains local-only learning material and is not distributed through GitHub. If those files are absent, use README.md for published status and scope, and ask for the learning checkpoint when needed; do not invent missing context.
-- Follow `docs/roadmap.md`.
+- `docs/` contains local-only learning material and is not tracked. If absent, use README.md and the MVP scope below; ask for missing learning context only when needed, and do not invent it.
+- Follow `docs/roadmap.md` when available.
 - Keep the MVP focused on repository import, browsing, cited code Q&A, and learning progress.
 - Put durable learning notes in `docs/`.
-- Keep the current learning checkpoint in `docs/learning-log.md`.
+- When maintaining local learning notes, keep the current checkpoint in `docs/learning-log.md`.
