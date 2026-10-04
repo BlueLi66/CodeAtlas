@@ -145,3 +145,186 @@ def test_database_failure_rolls_back_import(
 
     assert response.status_code == 500
     assert read_database(tmp_path) == before
+
+
+def test_list_files_returns_only_requested_repository(
+    repository_client, tmp_path
+):
+    """导入两个仓库后分别查清单：归属正确、有序、不带正文、不改数据。"""
+    # 故意按与路径排序不同的顺序写入，避免测试只依赖插入顺序。
+    first_response = upload_zip(
+        repository_client,
+        make_zip({
+            "src/main.py": "print('你好')\n",
+            "README.md": "# 示例\n",
+        }),
+    )
+    assert first_response.status_code == 201
+    first_id = first_response.json()["id"]
+
+    # 两个仓库都有 src/main.py，文件仍应由 repository_id 区分归属。
+    second_response = upload_zip(
+        repository_client,
+        make_zip({
+            "src/main.py": "print('另一仓库')\n",
+            "only-other.py": "print('other')\n",
+        }),
+    )
+    assert second_response.status_code == 201
+    second_id = second_response.json()["id"]
+    assert second_id != first_id
+
+    before = read_database(tmp_path)
+
+    # 同一个测试对两个仓库分别验证，不只检查第一份清单。
+    for repository_id, expected_paths in [
+        (first_id, ["README.md", "src/main.py"]),
+        (second_id, ["only-other.py", "src/main.py"]),
+    ]:
+        response = repository_client.get(
+            f"/repositories/{repository_id}/files"
+        )
+        assert response.status_code == 200
+        files = response.json()
+        assert [item["path"] for item in files] == expected_paths
+
+        # 每项必须是文件清单的三个字段，而不是带 content 的完整正文。
+        for item in files:
+            assert set(item) == {"id", "repository_id", "path"}
+            assert isinstance(item["id"], int)
+            assert item["id"] > 0
+            assert item["repository_id"] == repository_id
+        assert len({item["id"] for item in files}) == len(files)
+
+    # GET 查询只读：原有仓库和文件内容都不能被改变。
+    assert read_database(tmp_path) == before
+
+
+def test_list_files_distinguishes_empty_and_missing_repository(
+    repository_client, tmp_path
+):
+    """有仓库但没有文件返回 200 和 []；仓库不存在返回 404。"""
+    created = repository_client.post(
+        "/repositories",
+        json={
+            "name": "空仓库",
+            "source_url": "https://example.com/empty",
+        },
+    )
+    assert created.status_code == 201
+    repository_id = created.json()["id"]
+    before = read_database(tmp_path)
+
+    response = repository_client.get(
+        f"/repositories/{repository_id}/files"
+    )
+    assert response.status_code == 200
+    assert response.json() == []
+
+    # 独立临时数据库里只有上面创建的一条仓库；这个 ID 一定不存在。
+    response = repository_client.get(
+        f"/repositories/{repository_id + 1000}/files"
+    )
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Repository not found"}
+    assert read_database(tmp_path) == before
+
+
+def test_read_file_returns_saved_content(repository_client, tmp_path):
+    """导入后经清单取得文件 ID，再读回中文、换行与空文件正文。"""
+    expected_contents = {
+        "src/main.py": "print('你好')\n\n# 中文注释\n",
+        "EMPTY.md": "",
+    }
+    imported = upload_zip(repository_client, make_zip(expected_contents))
+    assert imported.status_code == 201
+    repository_id = imported.json()["id"]
+
+    # 使用清单返回的真实文件 ID，不猜测文件和仓库的主键相同。
+    listed = repository_client.get(
+        f"/repositories/{repository_id}/files"
+    )
+    assert listed.status_code == 200
+    files = listed.json()
+    assert len(files) == len(expected_contents)
+    assert {item["path"] for item in files} == set(expected_contents)
+    before = read_database(tmp_path)
+
+    for item in files:
+        response = repository_client.get(
+            f"/repositories/{repository_id}/files/{item['id']}"
+        )
+        assert response.status_code == 200
+        # 核对完整响应，不能只检查接口是否说读取成功。
+        assert response.json() == {
+            "id": item["id"],
+            "repository_id": repository_id,
+            "path": item["path"],
+            "content": expected_contents[item["path"]],
+        }
+
+    assert read_database(tmp_path) == before
+
+
+def test_read_file_rejects_another_repository(repository_client, tmp_path):
+    """两个仓库都有同名文件，不能用仓库 A 的路径读取仓库 B 的正文。"""
+    first = upload_zip(
+        repository_client,
+        make_zip({"main.py": "仓库 A 的正文"}),
+    )
+    assert first.status_code == 201
+    first_id = first.json()["id"]
+
+    second = upload_zip(
+        repository_client,
+        make_zip({"main.py": "仓库 B 的正文"}),
+    )
+    assert second.status_code == 201
+    second_id = second.json()["id"]
+    assert first_id != second_id
+
+    listed = repository_client.get(f"/repositories/{second_id}/files")
+    assert listed.status_code == 200
+    second_file_id = listed.json()[0]["id"]
+    before = read_database(tmp_path)
+
+    # 故意混用 A 的仓库 ID 和 B 的文件 ID，必须返回 404 而不是正文。
+    response = repository_client.get(
+        f"/repositories/{first_id}/files/{second_file_id}"
+    )
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Source file not found"}
+    assert read_database(tmp_path) == before
+
+
+@pytest.mark.parametrize("missing_kind", ["file", "repository"])
+def test_read_file_returns_404_for_missing_record(
+    repository_client, tmp_path, missing_kind
+):
+    """分别测试仓库存在但文件不存在，以及文件存在但仓库不存在。"""
+    imported = upload_zip(
+        repository_client,
+        make_zip({"main.py": "print('hello')\n"}),
+    )
+    assert imported.status_code == 201
+    repository_id = imported.json()["id"]
+
+    listed = repository_client.get(f"/repositories/{repository_id}/files")
+    assert listed.status_code == 200
+    file_id = listed.json()[0]["id"]
+    before = read_database(tmp_path)
+
+    # 每次测试有独立临时数据库，其中只有一条仓库和一条文件记录。
+    if missing_kind == "file":
+        file_id += 1000
+        expected_detail = "Source file not found"
+    else:
+        repository_id += 1000
+        expected_detail = "Repository not found"
+
+    response = repository_client.get(
+        f"/repositories/{repository_id}/files/{file_id}"
+    )
+    assert response.status_code == 404
+    assert response.json() == {"detail": expected_detail}
+    assert read_database(tmp_path) == before

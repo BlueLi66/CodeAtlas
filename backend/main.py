@@ -179,3 +179,67 @@ def import_repository(
         "source_url": None,
         "file_count": len(parsed_files),
     }
+
+@app.get("/repositories/{repository_id}/files")
+def list_repository_files(
+    repository_id: int,
+    db: Session = Depends(get_db),
+):
+    """返回指定仓库的文件清单，不包含文件正文。"""
+    # 先区分“仓库不存在”和“仓库存在但没有文件”。
+    repository = db.get(Repository, repository_id)
+    if repository is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Repository not found",
+        )
+    # 注意筛选的是文件的所属仓库 ID，而不是文件自己的 ID
+    statement = (
+        select(SourceFile)
+        .where(SourceFile.repository_id == repository_id)
+        .order_by(SourceFile.path, SourceFile.id)
+    )
+    stored_files = db.scalars(statement).all()
+
+    results = []
+    for source_file in stored_files:
+        results.append({
+            "id": source_file.id,
+            "repository_id": source_file.repository_id,
+            "path": source_file.path,
+        })
+
+    return results
+
+@app.get("/repositories/{repository_id}/files/{file_id}")
+def get_repository_file(
+    repository_id: int,
+    file_id: int,
+    db: Session = Depends(get_db),
+):
+    """读取指定仓库中的一个文件，返回路径和完整正文。"""
+    repository = db.get(Repository, repository_id)
+    if repository is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Repository not found",
+        )
+
+    statement = select(SourceFile).where(
+        SourceFile.id == file_id,
+        SourceFile.repository_id == repository_id,
+    )
+    source_file = db.scalar(statement)
+
+    if source_file is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Source file not found",
+        )
+
+    return {
+        "id": source_file.id,
+        "repository_id": source_file.repository_id,
+        "path": source_file.path,
+        "content": source_file.content,
+    }
