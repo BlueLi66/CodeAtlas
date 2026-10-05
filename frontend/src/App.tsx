@@ -18,6 +18,10 @@ type SourceFileDetail = SourceFile & {
   content: string
 }
 
+type RepositoryImportResult = Repository & {
+  file_count: number
+}
+
 function RepositoryCard(props: {
   repository: Repository
   onDelete: (id:number) => void
@@ -76,6 +80,11 @@ function App() {
   const [isFileLoading, setIsFileLoading] = useState(false)
   const [fileError, setFileError] = useState('')
 
+  const [importName, setImportName] = useState('')
+  const [archiveFile, setArchiveFile] = useState<File | null>(null)
+  const [isImporting, setIsImporting] = useState(false)
+  const [importError, setImportError] = useState('')
+  const [importSuccess, setImportSuccess] = useState('')
   async function checkHealth() {
     try {
       const response = await fetch('/health')
@@ -116,6 +125,10 @@ function App() {
   }, [])
 
   async function createRepository() {
+    // 导入期间不再创建另一条仓库记录，避免两次操作同时刷新列表。
+    if (isImporting) {
+      return
+    }
     setCreateError('')
     try {
       const response = await fetch('/repositories', {
@@ -135,8 +148,8 @@ function App() {
   }
 
   async function deleteRepository(id: number) {
-    // 清单、正文加载或删除期间暂不接受新操作，避免旧响应覆盖当前选择。
-    if (isFilesLoading || isFileLoading || isDeletingRepository) {
+    // 导入、清单／正文加载或删除期间暂不接受新操作。
+    if (isImporting || isFilesLoading || isFileLoading || isDeletingRepository) {
       return
     }
     if (!window.confirm(`确认删除仓库 ID ${id}? `)) {
@@ -171,7 +184,7 @@ function App() {
   }
 
   async function selectRepository(repository: Repository) {
-    if (isFilesLoading || isFileLoading || isDeletingRepository) {
+    if (isImporting || isFilesLoading || isFileLoading || isDeletingRepository) {
       return
     }
 
@@ -205,6 +218,7 @@ function App() {
     if (
       selectedRepository === null ||
       file.repository_id !== selectedRepository.id ||
+      isImporting ||
       isFilesLoading ||
       isFileLoading ||
       isDeletingRepository
@@ -237,11 +251,65 @@ function App() {
     }
   }
 
+  async function importRepository() {
+    if (
+      isImporting ||
+      isLoading ||
+      isDeletingRepository ||
+      // 这里 .trim() 是 JavaScript 的字符串方法，用来去掉开头和结尾的空白字符
+      importName.trim() === '' ||
+      archiveFile === null
+    ) {
+      return
+    }
+    setIsImporting(true)
+    setImportError('')
+    setImportSuccess('')
+
+    const formData = new FormData()
+    formData.append('name', importName.trim())
+    formData.append('archive', archiveFile)
+
+    try {
+      const response = await fetch('/repositories/import', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (response.status !== 201) {
+        const errorData: { detail?: unknown } =
+          await response.json().catch(() => ({}))
+        throw new Error(
+          typeof errorData.detail === 'string'
+            ? errorData.detail
+            : `导入失败（HTTP ${response.status}）`,
+        )
+      }
+      const data: RepositoryImportResult = await response.json()
+
+      setImportSuccess(
+        `仓库“${data.name}”导入成功，保存了 ${data.file_count} 个文件。`,
+      )
+
+      await loadRepositories()
+    } catch(error) {
+      setImportError(
+        error instanceof TypeError
+          ? '无法连接后端，请检查服务后重试。'
+          : error instanceof Error
+            ? error.message
+            : '导入失败，请重试。',
+      )
+    } finally {
+      setIsImporting(false)
+    }
+  }
+
   return (
     <main id="center">
       <h1>CodeAtlas</h1>
       <p>后端状态：{healthStatus}</p>
-      <button onClick={loadRepositories} disabled={isLoading}>
+      <button onClick={loadRepositories} disabled={isLoading || isImporting}>
         从后端加载
       </button>
       {isLoading && <p>正在加载...</p>}
@@ -252,7 +320,7 @@ function App() {
             repository={item}
             onDelete={deleteRepository}
             onSelect={selectRepository}
-            isBusy={isFilesLoading || isFileLoading || isDeletingRepository}
+            isBusy={isImporting || isFilesLoading || isFileLoading || isDeletingRepository}
           />
         ))}
       </ul>
@@ -274,12 +342,66 @@ function App() {
       </label>
       <p>当前输入：{name}</p>
       <button
-        disabled={name.trim() === '' || sourceUrl.trim() === ''}
+        disabled={isImporting || name.trim() === '' || sourceUrl.trim() === ''}
         onClick={createRepository}
       >
         保存到后端
       </button>
       {createError !== '' && <p>{createError}</p>}
+
+      <section>
+        <h2>导入 ZIP 仓库</h2>
+
+        <label>
+          仓库名称：
+            <input
+              value={importName}
+              disabled={isImporting}
+              onChange={(event) => {
+                setImportName(event.target.value)
+                setImportError('')
+                setImportSuccess('')
+              }}
+            />
+        </label>
+
+        <label>
+          ZIP 文件：
+          <input
+            type="file"
+            accept='.zip'
+            disabled={isImporting}
+            onChange={(event) => {
+              const file = event.currentTarget.files?.[0] ?? null
+                setArchiveFile(file)
+                setImportError('')
+                setImportSuccess('')
+            }}
+          />
+        </label>
+        <button
+          type="button"
+          disabled={
+            isImporting ||
+            isLoading ||
+            isDeletingRepository ||
+            importName.trim() === '' ||
+            archiveFile === null
+          }
+          onClick={importRepository}
+        >
+          {isImporting ? '正在导入...' : '导入 ZIP'}
+        </button>
+
+        {importError !== '' && (
+          <p role="alert">{importError}</p>
+        )}
+
+        {importSuccess !== '' && (
+          <p role="status">{importSuccess}</p>
+        )}
+      </section>
+
       <section>
         <h2>文件清单</h2>
 
@@ -301,7 +423,7 @@ function App() {
                     <li key={file.id}>
                       <button
                         type="button"
-                        disabled={isFilesLoading || isFileLoading || isDeletingRepository}
+                        disabled={isImporting || isFilesLoading || isFileLoading || isDeletingRepository}
                         onClick={() => selectFile(file)}
                       >
                         {file.path}
