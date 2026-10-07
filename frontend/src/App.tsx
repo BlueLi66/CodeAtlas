@@ -13,6 +13,18 @@ type SourceFile = {
   path: string
 }
 
+type TreeNode =
+  | {
+      kind: 'directory'
+      name: string
+      children: TreeNode[]
+    }
+  | {
+      kind: 'file'
+      name: string
+      file: SourceFile
+    }
+
 // 正文接口返回清单中的三个字段，并额外包含 content。
 type SourceFileDetail = SourceFile & {
   content: string
@@ -20,6 +32,90 @@ type SourceFileDetail = SourceFile & {
 
 type RepositoryImportResult = Repository & {
   file_count: number
+}
+
+function buildFileTree(files: SourceFile[]): TreeNode[] {
+  const roots: TreeNode[] = []
+
+  for (const file of files) {
+    // 只整理显示层级，原始 file.path 和文件 ID 不变。
+    const parts = file.path
+      .split("/")
+      .filter((part) => part !== '' && part !== ".")
+
+    let children = roots
+
+    for (let index = 0; index < parts.length; index += 1) {
+      const name = parts[index]
+
+      if (index === parts.length - 1) {
+        children.push({
+          kind: 'file',
+          name,
+          file,
+        })
+      } else {
+        const existing = children.find(
+          (node) =>
+            node.kind === 'directory' && node.name === name,
+        )
+
+        if (existing?.kind === 'directory') {
+          children = existing.children
+        } else {
+          const directory: TreeNode = {
+            kind: 'directory',
+            name,
+            children: [],
+          }
+
+          children.push(directory)
+          children = directory.children
+        }
+      }
+    }
+  }
+  return roots
+}
+
+function FileTree(props: {
+  nodes: TreeNode[]
+  onSelect: (file: SourceFile) => void
+  isBusy: boolean
+}) {
+  return (
+    <ul className='file-tree'>
+      {props.nodes.map((node) => (
+        <li
+          key={
+            node.kind === 'directory'
+             ? `directory:${node.name}`
+             : `file:${node.file.id}`
+          }
+        >
+          {node.kind === 'directory' ? (
+            <>
+              <span>{node.name}</span>
+
+              <FileTree
+                nodes={node.children}
+                onSelect={props.onSelect}
+                isBusy={props.isBusy}
+              />
+            </>
+          ) : (
+            <button
+              type='button'
+              disabled={props.isBusy}
+              onClick={() => props.onSelect(node.file)}
+            >
+              {node.name}
+            </button>
+          )}
+        </li>
+      ))}
+    </ul>
+  )
 }
 
 function RepositoryCard(props: {
@@ -305,6 +401,8 @@ function App() {
     }
   }
 
+  const fileTree = buildFileTree(sourceFiles)
+
   return (
     <main id="center">
       <h1>CodeAtlas</h1>
@@ -418,19 +516,16 @@ function App() {
               sourceFiles.length === 0 ? (
                 <p>这个仓库没有可浏览的文件。</p>
               ) : (
-                <ul>
-                  {sourceFiles.map((file) => (
-                    <li key={file.id}>
-                      <button
-                        type="button"
-                        disabled={isImporting || isFilesLoading || isFileLoading || isDeletingRepository}
-                        onClick={() => selectFile(file)}
-                      >
-                        {file.path}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
+                <FileTree
+                  nodes={fileTree}
+                  onSelect={selectFile}
+                  isBusy={
+                    isImporting ||
+                    isFilesLoading ||
+                    isFileLoading ||
+                    isDeletingRepository
+                  }
+                />
               )
             )}
           </>

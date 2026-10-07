@@ -196,3 +196,14 @@
   text-align: left;
   font: 16px/1.6 var(--mono);
 }
+
+#center .file-tree {
+  width: auto;
+  margin: 0;
+  padding-left: 20px;
+  list-style: none;
+}
+
+.file-tree li {
+  margin: 6px 0;
+}
